@@ -1,0 +1,6 @@
+access_key: ""
+secret_key: ""
+bucket: ""
+cdn_domain: ""
+proxy: ""
+file_path: "cdnjs" # 强烈建议设置一个目录名称
