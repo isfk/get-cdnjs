@@ -75,7 +75,7 @@ https://pb.isfk.cn/cdnjs/jquery/3.7.1/jquery.slim.js
 
 
 # 查看上传到七牛的资源库
-> ./get-cdnjs --config list config.yaml     
+> ./get-cdnjs list --config config.yaml     
 使用配置: config.yaml
 当前配置不使用代理
 ─ cdnjs:
