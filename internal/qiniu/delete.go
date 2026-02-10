@@ -3,6 +3,7 @@ package qiniu
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/isfk/get-cdnjs/config"
 	"github.com/isfk/get-cdnjs/pkg"
@@ -42,12 +43,36 @@ func RunDelete(targetPath string) {
 		os.Exit(0)
 	}
 
-	fmt.Printf("找到以下目录:\n")
-	for _, v := range list {
-		fmt.Printf("  - %s\n", v)
+	result := map[string][]string{}
+	for _, dir := range list {
+		if strings.HasSuffix(dir, "/") {
+			files, err := pkg.List(config.Conf.Bucket, dir)
+			if err != nil {
+				fmt.Printf("查询文件失败 %s: %v\n", dir, err)
+				continue
+			}
+			result[dir] = files
+		}
 	}
 
-	fmt.Print("\n确认删除以上目录及其所有文件? (yes/no): ")
+	fmt.Printf("\033[31m=== 即将删除以下目录和文件 ===\033[0m\n")
+	fmt.Printf("路径: %s\n\n", fullPath)
+
+	totalFiles := 0
+	for dir, files := range result {
+		relativePath := strings.Trim(strings.ReplaceAll(dir, fullPath, ""), "/")
+		fmt.Printf("  \033[33m├─ %s/:\033[0m\n", relativePath)
+		for _, f := range files {
+			fileName := strings.Trim(strings.ReplaceAll(f, dir, ""), "/")
+			if fileName != "" {
+				fmt.Printf("  │  └─ %s\n", fileName)
+				totalFiles++
+			}
+		}
+	}
+
+	fmt.Printf("\n共 %d 个目录，%d 个文件\n", len(result), totalFiles)
+	fmt.Print("\n\033[31m确认删除? (输入 'yes' 继续):\033[0m ")
 	var confirm string
 	_, err = fmt.Scanln(&confirm)
 	if err != nil || confirm != "yes" {
@@ -57,10 +82,10 @@ func RunDelete(targetPath string) {
 
 	count, err := pkg.Delete(config.Conf.Bucket, fullPath+"/")
 	if err != nil {
-		fmt.Printf("删除失败: %v\n", err)
+		fmt.Printf("\n删除失败: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("\n成功删除 %d 个文件\n", count)
+	fmt.Printf("\n\033[32m✓ 成功删除 %d 个文件\033[0m\n", count)
 	fmt.Printf("目录: %s\n", fullPath)
 }
