@@ -35,7 +35,21 @@ func RunDelete(targetPath string) {
 		for _, v := range list {
 			if strings.HasSuffix(v, "/") {
 				relativePath := strings.Trim(strings.ReplaceAll(v, config.Conf.FilePath, ""), "/")
-				fmt.Printf("  - %s\n", strings.Trim(relativePath, "/"))
+				dirName := strings.Trim(relativePath, "/")
+				fmt.Printf("  - %s\n", dirName)
+
+				children, err := pkg.List(config.Conf.Bucket, v)
+				if err == nil && len(children) > 0 {
+					for _, child := range children {
+						if strings.HasSuffix(child, "/") {
+							childName := strings.Trim(strings.ReplaceAll(child, v, ""), "/")
+							childName = strings.Trim(strings.ReplaceAll(childName, config.Conf.FilePath, ""), "/")
+							if childName != "" {
+								fmt.Printf("    └─ %s\n", strings.Trim(childName, "/"))
+							}
+						}
+					}
+				}
 			}
 		}
 
