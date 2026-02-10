@@ -1,125 +1,125 @@
-# Changelog
+# 更新日志
 
-All notable changes to this project will be documented in this file.
+本项目的所有重要更改都将记录在此文件中。
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
+本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
 ## [2.0.0] - 2026-02-10
 
-### ⚠️ Breaking Changes
+### ⚠️ 重大变更
 
-- **Migration from cdnjs to jsDelivr**
-  - Changed API endpoint from `api.cdnjs.com` to `data.jsdelivr.com`
-  - Changed CDN URL from `cdnjs.cloudflare.com` to `cdn.jsdelivr.net`
-  - Updated package source from cdnjs libraries to npm packages
-  - File path format changed: `cdnjs/{lib}/{ver}/{file}` → `npm/{lib}@{ver}/{file}`
+- **从 cdnjs 迁移到 jsDelivr**
+  - API 端点变更：`api.cdnjs.com` → `data.jsdelivr.com`
+  - CDN 地址变更：`cdnjs.cloudflare.com` → `cdn.jsdelivr.net`
+  - 包源变更：从 cdnjs 库改为 npm 包
+  - 文件路径格式变更：`cdnjs/{lib}/{ver}/{file}` → `npm/{lib}@{ver}/{file}`
 
-- **Configuration Update**
-  - Default `file_path` changed from `cdnjs` to `npm`
-  - All API calls now use `@` separator for versions (e.g., `jquery@3.7.1`)
+- **配置更新**
+  - 默认 `file_path` 从 `cdnjs` 改为 `npm`
+  - 所有 API 调用现在使用 `@` 分隔版本号（如 `jquery@3.7.1`）
 
-### ✨ Added
+### ✨ 新增
 
-#### Core Features
-- **Proxy Support** - All network requests now respect configured proxy settings
-  - API queries go through proxy
-  - File downloads go through proxy
-  - Solves jsDelivr network issues in restricted regions
+#### 核心功能
+- **代理支持** - 所有网络请求现在都遵循配置的代理设置
+  - API 查询通过代理
+  - 文件下载通过代理
+  - 解决 jsDelivr 在网络受限地区的访问问题
 
-- **Delete Command** - New `delete` command for removing directories from qiniu
+- **删除命令** - 新增 `delete` 命令用于删除七牛云中的目录
   ```bash
-  ./get-cdnjs delete [directory]
+  ./get-cdnjs delete [目录名]
   ```
-  - Interactive directory browser with subdirectory display
-  - Detailed file preview before deletion
-  - Safe deletion with confirmation requirement
+  - 交互式目录浏览器，支持子目录展示
+  - 删除前详细预览文件列表
+  - 需要确认才能安全删除
 
-- **Retry Mechanism** - Automatic retry for failed downloads
-  - 3 retry attempts per file
-  - Configurable proxy support for retries
-  - Detailed retry logging
+- **重试机制** - 下载失败自动重试
+  - 每个文件重试 3 次
+  - 重试支持代理配置
+  - 详细的重试日志
 
-- **Batch Processing** - Separated download and upload phases
-  - Phase 1: Download all files (with retry)
-  - Phase 2: Upload all successful downloads
-  - Better error visibility and tracking
+- **批量处理** - 分离下载和上传阶段
+  - 阶段 1：下载所有文件（含重试）
+  - 阶段 2：上传所有下载成功的文件
+  - 更好的错误可见性和跟踪
 
-#### User Experience
-- **Enhanced Error Tracking** - Separate tracking for download and upload failures
-  - Detailed error messages with file URLs
-  - Statistics summary (success/failure counts)
-  - Color-coded terminal output
+#### 用户体验
+- **增强的错误跟踪** - 分别跟踪下载和上传失败
+  - 详细的错误信息，包含文件 URL
+  - 统计摘要（成功/失败计数）
+  - 彩色终端输出
 
-- **Interactive Directory Browser** - Show existing directories before deletion
-  - Tree-structure display with subdirectories
-  - Visual representation of qiniu storage
-  - Helps identify versions to clean up
+- **交互式目录浏览器** - 删除前显示现有目录
+  - 树形结构显示子目录
+  - 七牛存储的可视化展示
+  - 帮助识别需要清理的版本
 
-- **Progress Feedback** - Real-time progress indicators
-  - Download phase with file-by-file status
-  - Upload phase with success confirmation
-  - Byte count for downloaded files
-  - Colored status messages
+- **进度反馈** - 实时进度指示器
+  - 下载阶段的文件状态
+  - 上传阶段的成功确认
+  - 下载文件的字节计数
+  - 彩色状态消息
 
-### 🔄 Changed
+### 🔄 变更
 
-- **Download Strategy** - Switched from qiniu Fetch to local download + upload
-  - Previous: qiniu server directly fetched from CDN (no proxy support)
-  - Current: Download locally (with proxy), then upload to qiniu
-  - Benefit: Full proxy support for all network operations
+- **下载策略** - 从七牛 Fetch 改为本地下载 + 上传
+  - 之前：七牛服务器直接从 CDN 拉取（不支持代理）
+  - 现在：本地下载（支持代理），然后上传到七牛
+  - 优势：所有网络操作都支持代理
 
-- **File Handling** - In-memory storage instead of temporary files
-  - Files stored in memory during download phase
-  - Direct upload from memory
-  - No disk I/O for better performance
+- **文件处理** - 内存存储而非临时文件
+  - 文件在下载阶段存储在内存中
+  - 直接从内存上传
+  - 无磁盘 I/O，性能更佳
 
-- **API Response Structures** - Updated for jsDelivr API compatibility
-  - `JSDelivrVersionsRet` - New structure for version queries
-  - `JSDelivrFilesRet` - New nested structure for file listings
-  - `FileEntry` - Recursive file entry structure
-  - `flattenFiles()` - Helper to extract files from nested structure
+- **API 响应结构** - 更新以兼容 jsDelivr API
+  - `JSDelivrVersionsRet` - 版本查询的新结构
+  - `JSDelivrFilesRet` - 文件列表的新嵌套结构
+  - `FileEntry` - 递归文件条目结构
+  - `flattenFiles()` - 从嵌套结构提取文件的辅助函数
 
-### 🐛 Fixed
+### 🐛 修复
 
-- Network timeout issues with proxy configuration
-- Partial file uploads in error scenarios
-- Missing visibility into failed operations
+- 代理配置的网络超时问题
+- 错误场景下的部分文件上传
+- 失败操作的可见性问题
 
-### 📚 Documentation
+### 📚 文档
 
-- Updated README with jsDelivr examples
-- New command usage documentation
-- Enhanced configuration examples
-- Updated operation samples with new URLs
+- 使用 jsDelivr 示例更新 README
+- 新增命令使用文档
+- 增强配置示例
+- 使用新 URL 更新操作示例
 
-### 🛠️ Internal
+### 🛠️ 内部
 
-- Added `internal/qiniu/delete.go` for delete command logic
-- Added `cmd/delete.go` for CLI command
-- Enhanced `pkg/qiniu.go` with batch delete operations
-- Improved error handling throughout
+- 添加 `internal/qiniu/delete.go` 实现删除命令逻辑
+- 添加 `cmd/delete.go` CLI 命令
+- 增强 `pkg/qiniu.go` 批量删除操作
+- 全面改进错误处理
 
 ---
 
 ## [1.0.0] - 2024-08-09
 
-### ✨ Added
+### ✨ 新增
 
-- Initial release
-- cdnjs API integration
-- Basic download and upload functionality
-- Qiniu cloud storage support
-- List command for viewing uploaded resources
-- Configuration file support
+- 初始版本发布
+- cdnjs API 集成
+- 基础下载和上传功能
+- 七牛云存储支持
+- 列出已上传资源的命令
+- 配置文件支持
 
-### 📋 Features
+### 📋 功能特性
 
-- Download libraries from cdnjs
-- Automatic upload to qiniu cloud
-- Proxy configuration support
-- Version selection interface
-- File listing in tree structure
+- 从 cdnjs 下载库
+- 自动上传到七牛云
+- 代理配置支持
+- 版本选择界面
+- 树形结构文件列表
 
 [2.0.0]: https://github.com/isfk/get-cdnjs/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/isfk/get-cdnjs/releases/tag/v1.0.0
