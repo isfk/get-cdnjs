@@ -55,8 +55,7 @@ func Scan() {
 	fmt.Print("\033[31m[ \033[0m")
 	for _, v := range files {
 		fmt.Printf("%s ", v)
-		// https://cdnjs.cloudflare.com/ajax/libs/{:library}/{:version}/{:file}
-		allFiles[v] = fmt.Sprintf("https://cdnjs.cloudflare.com/ajax/libs/%s/%s/%s", libraryName, version, v)
+		allFiles[v] = fmt.Sprintf("https://cdn.jsdelivr.net/npm/%s@%s/%s", libraryName, version, v)
 	}
 	fmt.Print("\033[31m]\033[0m")
 	fmt.Println()
@@ -85,6 +84,27 @@ func Scan() {
 	fmt.Println()
 }
 
+type JSDelivrVersionsRet struct {
+	Tags     Tags     `json:"tags"`
+	Versions []string `json:"versions"`
+}
+
+type Tags struct {
+	Latest string `json:"latest"`
+}
+
+type FileEntry struct {
+	Type  string      `json:"type"` // "file" or "directory"
+	Name  string      `json:"name"`
+	Files []FileEntry `json:"files,omitempty"`
+}
+
+type JSDelivrFilesRet struct {
+	Default string      `json:"default"`
+	Files   []FileEntry `json:"files"`
+}
+
+// 保留旧结构体用于兼容
 type VersionsRet struct {
 	Name     string   `json:"name"`
 	Version  string   `json:"version"`
@@ -97,26 +117,42 @@ type FilesRet struct {
 	Files   []string `json:"files"`
 }
 
+func flattenFiles(entries []FileEntry, prefix string) []string {
+	var files []string
+	for _, e := range entries {
+		path := e.Name
+		if prefix != "" {
+			path = prefix + "/" + e.Name
+		}
+		if e.Type == "file" {
+			files = append(files, path)
+		} else if len(e.Files) > 0 {
+			files = append(files, flattenFiles(e.Files, path)...)
+		}
+	}
+	return files
+}
+
 func GetVersions(libraryName string) (version string, versions []string) {
-	ret := &VersionsRet{}
-	url := fmt.Sprintf("https://api.cdnjs.com/libraries/%s", libraryName)
+	ret := &JSDelivrVersionsRet{}
+	url := fmt.Sprintf("https://data.jsdelivr.com/v1/package/npm/%s", libraryName)
 	fmt.Printf("查找链接: %s\n", url)
-	_, err := Get[VersionsRet](url, config.Conf.Proxy, ret)
+	_, err := Get[JSDelivrVersionsRet](url, config.Conf.Proxy, ret)
 	if err != nil {
 		return
 	}
 
-	return ret.Version, ret.Versions
+	return ret.Tags.Latest, ret.Versions
 }
 
 func GetFiles(libraryName string, version string) (files []string) {
-	ret := &FilesRet{}
-	url := fmt.Sprintf("https://api.cdnjs.com/libraries/%s/%s", libraryName, version)
+	ret := &JSDelivrFilesRet{}
+	url := fmt.Sprintf("https://data.jsdelivr.com/v1/package/npm/%s@%s", libraryName, version)
 	fmt.Printf("查找链接: %s\n", url)
-	_, err := Get[FilesRet](url, config.Conf.Proxy, ret)
+	_, err := Get[JSDelivrFilesRet](url, config.Conf.Proxy, ret)
 	if err != nil {
 		return
 	}
 
-	return ret.Files
+	return flattenFiles(ret.Files, "")
 }

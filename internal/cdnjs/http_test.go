@@ -4,18 +4,18 @@ import (
 	"testing"
 )
 
-// https://api.cdnjs.com/libraries/{:library}
-// https://api.cdnjs.com/libraries/jquery
+// https://data.jsdelivr.com/v1/package/npm/{:package}
+// https://data.jsdelivr.com/v1/package/npm/jquery
 
-// https://api.cdnjs.com/libraries/{:library}/{:version}
-// https://api.cdnjs.com/libraries/jquery/3.5.1
+// https://data.jsdelivr.com/v1/package/npm/{:package}@{:version}
+// https://data.jsdelivr.com/v1/package/npm/jquery@3.7.1
 
-// https://cdnjs.cloudflare.com/ajax/libs/{:library}/{:version}/{:file}
+// https://cdn.jsdelivr.net/npm/{:package}@{:version}/{:file}
 
 func TestVersions(t *testing.T) {
-	ret := &VersionsRet{}
-	url := "https://api.cdnjs.com/libraries/jquery"
-	_, err := Get[VersionsRet](url, "http://127.0.0.1:7897", ret)
+	ret := &JSDelivrVersionsRet{}
+	url := "https://data.jsdelivr.com/v1/package/npm/jquery"
+	_, err := Get[JSDelivrVersionsRet](url, "http://127.0.0.1:7897", ret)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -24,9 +24,9 @@ func TestVersions(t *testing.T) {
 }
 
 func TestFiles(t *testing.T) {
-	ret := &FilesRet{}
-	url := "https://api.cdnjs.com/libraries/jquery/3.7.1"
-	_, err := Get[FilesRet](url, "http://127.0.0.1:7897", ret)
+	ret := &JSDelivrFilesRet{}
+	url := "https://data.jsdelivr.com/v1/package/npm/jquery@3.7.1"
+	_, err := Get[JSDelivrFilesRet](url, "http://127.0.0.1:7897", ret)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
