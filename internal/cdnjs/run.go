@@ -62,17 +62,26 @@ func Scan() {
 	fmt.Print("回车开始抓取, 结束请按键: <Ctrl + C> ")
 	_, _ = fmt.Scanln(&confirm)
 	fmt.Println()
-	// 下载文件并上传 TODO
+
 	for fileName, fileUrl := range allFiles {
-		fmt.Printf("开始抓取文件: %s\n", fileUrl)
+		fmt.Printf("开始下载文件: %s\n", fileUrl)
 		key := fmt.Sprintf("%s/%s/%s/%s", config.Conf.FilePath, libraryName, version, fileName)
-		err = pkg.Fetch(config.Conf.Bucket, key, fileUrl)
+
+		data, err := GetFileBytes(fileUrl, config.Conf.Proxy)
 		if err != nil {
-			fmt.Printf("抓取失败: %s\n", err)
+			fmt.Printf("下载失败: %s\n", err)
+			continue
 		}
+
+		err = pkg.Upload(key, data)
+		if err != nil {
+			fmt.Printf("上传失败: %s\n", err)
+			continue
+		}
+
 		ownFile := fmt.Sprintf("%s/%s", config.Conf.CdnDomain, key)
 		ownFiles[fileName] = ownFile
-		fmt.Printf("抓取成功: %s\n\n", ownFile)
+		fmt.Printf("上传成功: %s\n\n", ownFile)
 	}
 	fmt.Printf("%s 所有文件已抓取到七牛:\n", libraryName)
 	for _, v := range ownFiles {
