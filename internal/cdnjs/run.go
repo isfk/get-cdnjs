@@ -51,12 +51,6 @@ func Scan() {
 	fmt.Println("该版本存在以下文件: ")
 
 	allFiles := map[string]string{}
-	ownFiles := map[string]string{}
-	failedFiles := []struct {
-		name string
-		url  string
-		err  error
-	}{}
 	fmt.Print("\033[31m[ \033[0m")
 	for _, v := range files {
 		fmt.Printf("%s ", v)
@@ -68,18 +62,23 @@ func Scan() {
 	_, _ = fmt.Scanln(&confirm)
 	fmt.Println()
 
-	for fileName, fileUrl := range allFiles {
-		key := fmt.Sprintf("%s/%s/%s/%s", config.Conf.FilePath, libraryName, version, fileName)
+	downloadedFiles := map[string][]byte{}
+	downloadFailed := []struct {
+		name string
+		url  string
+		err  error
+	}{}
 
+	fmt.Println("\033[36m=== 第一步：下载文件 ===\033[0m")
+	for fileName, fileUrl := range allFiles {
 		var data []byte
 		var downloadErr error
-		var uploadErr error
 
 		for retry := 0; retry < 3; retry++ {
 			if retry > 0 {
 				fmt.Printf("重试 %d/3: %s\n", retry, fileUrl)
 			} else {
-				fmt.Printf("开始下载文件: %s\n", fileUrl)
+				fmt.Printf("下载: %s\n", fileUrl)
 			}
 
 			data, downloadErr = GetFileBytes(fileUrl, config.Conf.Proxy)
@@ -89,8 +88,8 @@ func Scan() {
 		}
 
 		if downloadErr != nil {
-			fmt.Printf("下载失败（已重试3次）: %s - %v\n\n", fileUrl, downloadErr)
-			failedFiles = append(failedFiles, struct {
+			fmt.Printf("  \033[31m下载失败（已重试3次）: %v\033[0m\n\n", downloadErr)
+			downloadFailed = append(downloadFailed, struct {
 				name string
 				url  string
 				err  error
@@ -98,39 +97,64 @@ func Scan() {
 			continue
 		}
 
-		uploadErr = pkg.Upload(key, data)
-		if uploadErr != nil {
-			fmt.Printf("上传失败: %s - %v\n\n", fileUrl, uploadErr)
-			failedFiles = append(failedFiles, struct {
-				name string
-				url  string
-				err  error
-			}{fileName, fileUrl, uploadErr})
-			continue
-		}
+		downloadedFiles[fileName] = data
+		fmt.Printf("  \033[32m下载成功: %d bytes\033[0m\n\n", len(data))
+	}
 
-		ownFile := fmt.Sprintf("%s/%s", config.Conf.CdnDomain, key)
-		ownFiles[fileName] = ownFile
-		fmt.Printf("上传成功: %s\n\n", ownFile)
+	ownFiles := map[string]string{}
+	uploadFailed := []struct {
+		name string
+		err  error
+	}{}
+
+	if len(downloadedFiles) > 0 {
+		fmt.Println("\n\033[36m=== 第二步：上传文件 ===\033[0m")
+		for fileName, data := range downloadedFiles {
+			key := fmt.Sprintf("%s/%s/%s/%s", config.Conf.FilePath, libraryName, version, fileName)
+
+			uploadErr := pkg.Upload(key, data)
+			if uploadErr != nil {
+				fmt.Printf("上传失败: %s - \033[31m%v\033[0m\n\n", fileName, uploadErr)
+				uploadFailed = append(uploadFailed, struct {
+					name string
+					err  error
+				}{fileName, uploadErr})
+				continue
+			}
+
+			ownFile := fmt.Sprintf("%s/%s", config.Conf.CdnDomain, key)
+			ownFiles[fileName] = ownFile
+			fmt.Printf("上传成功: %s\n\n", ownFile)
+		}
 	}
 
 	fmt.Printf("\n\033[32m=== %s @ %s 抓取完成 ===\033[0m\n", libraryName, version)
-	fmt.Printf("成功: %d 个文件\n", len(ownFiles))
-	fmt.Printf("失败: %d 个文件\n", len(failedFiles))
+	fmt.Printf("下载成功: %d 个文件\n", len(downloadedFiles))
+	fmt.Printf("下载失败: %d 个文件\n", len(downloadFailed))
+	fmt.Printf("上传成功: %d 个文件\n", len(ownFiles))
+	fmt.Printf("上传失败: %d 个文件\n", len(uploadFailed))
 
-	if len(ownFiles) > 0 {
-		fmt.Println("\n成功文件:")
-		for _, v := range ownFiles {
-			fmt.Println(v)
-		}
-	}
-
-	if len(failedFiles) > 0 {
-		fmt.Println("\n失败文件:")
-		for _, f := range failedFiles {
+	if len(downloadFailed) > 0 {
+		fmt.Println("\n\033[31m下载失败文件:\033[0m")
+		for _, f := range downloadFailed {
 			fmt.Printf("  - %s\n", f.name)
 			fmt.Printf("    URL: %s\n", f.url)
 			fmt.Printf("    错误: %v\n", f.err)
+		}
+	}
+
+	if len(uploadFailed) > 0 {
+		fmt.Println("\n\033[31m上传失败文件:\033[0m")
+		for _, f := range uploadFailed {
+			fmt.Printf("  - %s\n", f.name)
+			fmt.Printf("    错误: %v\n", f.err)
+		}
+	}
+
+	if len(ownFiles) > 0 {
+		fmt.Println("\n\033[32m成功上传:\033[0m")
+		for _, v := range ownFiles {
+			fmt.Println(v)
 		}
 	}
 
