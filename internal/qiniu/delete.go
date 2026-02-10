@@ -12,24 +12,49 @@ import (
 func RunDelete(targetPath string) {
 	config.InitConfig()
 
-	pathToDelete := targetPath
-	if pathToDelete == "" {
-		fmt.Println("请输入要删除的目录:")
-		_, err := fmt.Scanln(&pathToDelete)
+	if targetPath == "" {
+		fmt.Println("\033[36m=== 七牛云现有目录 ===\033[0m")
+
+		var list []string
+		var err error
+		if config.Conf.FilePath != "" {
+			list, err = pkg.List(config.Conf.Bucket, fmt.Sprintf("%s/", config.Conf.FilePath))
+		} else {
+			list, err = pkg.List(config.Conf.Bucket, "")
+		}
+		if err != nil {
+			fmt.Printf("查询失败: %v\n", err)
+			os.Exit(1)
+		}
+
+		if len(list) == 0 {
+			fmt.Println("暂无目录")
+			os.Exit(0)
+		}
+
+		for _, v := range list {
+			if strings.HasSuffix(v, "/") {
+				relativePath := strings.Trim(strings.ReplaceAll(v, config.Conf.FilePath, ""), "/")
+				fmt.Printf("  - %s\n", strings.Trim(relativePath, "/"))
+			}
+		}
+
+		fmt.Println("\n请输入要删除的目录:")
+		_, err = fmt.Scanln(&targetPath)
 		if err != nil {
 			fmt.Println("输入错误")
 			os.Exit(1)
 		}
 	}
 
-	if pathToDelete == "" {
+	if targetPath == "" {
 		fmt.Println("错误: 目录路径不能为空")
 		os.Exit(1)
 	}
 
-	fullPath := pathToDelete
+	fullPath := targetPath
 	if config.Conf.FilePath != "" {
-		fullPath = fmt.Sprintf("%s/%s", config.Conf.FilePath, pathToDelete)
+		fullPath = fmt.Sprintf("%s/%s", config.Conf.FilePath, targetPath)
 	}
 
 	list, err := pkg.List(config.Conf.Bucket, fullPath+"/")
