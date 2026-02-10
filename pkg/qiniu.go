@@ -51,3 +51,45 @@ func List(bucket, prefix string) ([]string, error) {
 	}
 	return prefixes, nil
 }
+
+func Delete(bucket, prefix string) (int, error) {
+	bucketManager := storage.NewBucketManager(auth.New(config.Conf.AccessKey, config.Conf.SecretKey), &storage.Config{})
+
+	items := []string{}
+	limit := 1000
+
+	entries, _, _, _, err := bucketManager.ListFiles(bucket, prefix, "", "", limit)
+	if err != nil {
+		fmt.Println(err)
+		return 0, err
+	}
+
+	for _, entry := range entries {
+		items = append(items, entry.Key)
+	}
+
+	if len(items) == 0 {
+		return 0, nil
+	}
+
+	deleteOps := make([]string, len(items))
+	for i, key := range items {
+		deleteOps[i] = storage.URIDelete(bucket, key)
+	}
+
+	rets, err := bucketManager.Batch(deleteOps)
+	if err != nil {
+		fmt.Println(err)
+		return 0, err
+	}
+
+	failedCount := 0
+	for _, ret := range rets {
+		if ret.Code != 200 && ret.Code != 612 {
+			failedCount++
+			fmt.Printf("删除失败: %s\n", ret.Data)
+		}
+	}
+
+	return len(items) - failedCount, nil
+}
