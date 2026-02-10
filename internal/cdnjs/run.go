@@ -52,6 +52,11 @@ func Scan() {
 
 	allFiles := map[string]string{}
 	ownFiles := map[string]string{}
+	failedFiles := []struct {
+		name string
+		url  string
+		err  error
+	}{}
 	fmt.Print("\033[31m[ \033[0m")
 	for _, v := range files {
 		fmt.Printf("%s ", v)
@@ -64,18 +69,43 @@ func Scan() {
 	fmt.Println()
 
 	for fileName, fileUrl := range allFiles {
-		fmt.Printf("开始下载文件: %s\n", fileUrl)
 		key := fmt.Sprintf("%s/%s/%s/%s", config.Conf.FilePath, libraryName, version, fileName)
 
-		data, err := GetFileBytes(fileUrl, config.Conf.Proxy)
-		if err != nil {
-			fmt.Printf("下载失败: %s\n", err)
+		var data []byte
+		var downloadErr error
+		var uploadErr error
+
+		for retry := 0; retry < 3; retry++ {
+			if retry > 0 {
+				fmt.Printf("重试 %d/3: %s\n", retry, fileUrl)
+			} else {
+				fmt.Printf("开始下载文件: %s\n", fileUrl)
+			}
+
+			data, downloadErr = GetFileBytes(fileUrl, config.Conf.Proxy)
+			if downloadErr == nil {
+				break
+			}
+		}
+
+		if downloadErr != nil {
+			fmt.Printf("下载失败（已重试3次）: %s - %v\n\n", fileUrl, downloadErr)
+			failedFiles = append(failedFiles, struct {
+				name string
+				url  string
+				err  error
+			}{fileName, fileUrl, downloadErr})
 			continue
 		}
 
-		err = pkg.Upload(key, data)
-		if err != nil {
-			fmt.Printf("上传失败: %s\n", err)
+		uploadErr = pkg.Upload(key, data)
+		if uploadErr != nil {
+			fmt.Printf("上传失败: %s - %v\n\n", fileUrl, uploadErr)
+			failedFiles = append(failedFiles, struct {
+				name string
+				url  string
+				err  error
+			}{fileName, fileUrl, uploadErr})
 			continue
 		}
 
@@ -83,10 +113,27 @@ func Scan() {
 		ownFiles[fileName] = ownFile
 		fmt.Printf("上传成功: %s\n\n", ownFile)
 	}
-	fmt.Printf("%s 所有文件已抓取到七牛:\n", libraryName)
-	for _, v := range ownFiles {
-		fmt.Println(v)
+
+	fmt.Printf("\n\033[32m=== %s @ %s 抓取完成 ===\033[0m\n", libraryName, version)
+	fmt.Printf("成功: %d 个文件\n", len(ownFiles))
+	fmt.Printf("失败: %d 个文件\n", len(failedFiles))
+
+	if len(ownFiles) > 0 {
+		fmt.Println("\n成功文件:")
+		for _, v := range ownFiles {
+			fmt.Println(v)
+		}
 	}
+
+	if len(failedFiles) > 0 {
+		fmt.Println("\n失败文件:")
+		for _, f := range failedFiles {
+			fmt.Printf("  - %s\n", f.name)
+			fmt.Printf("    URL: %s\n", f.url)
+			fmt.Printf("    错误: %v\n", f.err)
+		}
+	}
+
 	fmt.Println()
 	fmt.Println("结束请按键: <Ctrl + C> ")
 	fmt.Println()
